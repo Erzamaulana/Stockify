@@ -6,17 +6,23 @@ use Illuminate\Http\Request;
 use App\Services\ProductService;
 use App\Models\Category;
 use App\Models\Supplier;
+use App\Services\StockService;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Events\ActivityOccurred; // Tambahkan use event
 
 class ProductController extends Controller
 {
+    protected StockService $stockService;
     protected ProductService $productService;
     
-    public function __construct(ProductService $productService)
-    {
+    public function __construct(
+        ProductService $productService,
+        StockService $stockService // Tambahkan ini
+    ) {
         $this->productService = $productService;
+        $this->stockService = $stockService; // Inisialisasi
     }
+    
 
     /**
      * Menampilkan daftar produk.
@@ -60,10 +66,19 @@ class ProductController extends Controller
         if (!in_array($type, ['Masuk', 'Keluar'])) {
             abort(400, 'Invalid transaction type');
         }
-        // Ambil daftar produk untuk dipilih di form transaksi
-        $products = $this->productService->getAllProducts();
+        
+        if ($type === 'Keluar') {
+            // Mengambil produk yang memiliki transaksi masuk berstatus "Diterima" dan remaining > 0
+            // Pastikan ProductService sudah memiliki method getProductsWithAcceptedStock() 
+            // yang melakukan filtering melalui tabel stock_transactions.
+            $products = $this->productService->getProductsWithAcceptedStock();
+        } else {
+            // Untuk transaksi masuk, tampilkan semua produk
+            $products = $this->productService->getAllProducts();
+        }
+        
         return view('admin.products.transaction', compact('products', 'type'));
-    }
+    }    
 
     /**
      * Memproses transaksi stok (barang masuk/keluar) untuk Admin.
@@ -83,8 +98,13 @@ class ProductController extends Controller
         ]);
 
         try {
-            $this->productService->updateStock($validated['product_id'], $validated['quantity'], $type, $validated['notes'] ?? '');
-            
+            $this->stockService->createTransaction([
+                'product_id' => $validated['product_id'],
+                'quantity'   => $validated['quantity'],
+                'type'       => $type,
+                'date'       => now()->toDateString(),
+                'notes'      => $validated['notes'] ?? ''
+            ]);
             // Dispatch event untuk mencatat aktivitas transaksi
             event(new ActivityOccurred(
                 auth()->id(),
@@ -132,7 +152,6 @@ class ProductController extends Controller
             'category_id'    => 'required|exists:categories,id',
             'supplier_id'    => 'required|exists:suppliers,id',
             'image'          => 'nullable|image|max:2048',
-            'stock'          => 'nullable|integer',
         ]);
 
         if ($request->hasFile('image')) {
@@ -183,7 +202,6 @@ class ProductController extends Controller
             'category_id'    => 'required|exists:categories,id',
             'supplier_id'    => 'required|exists:suppliers,id',
             'image'          => 'nullable|image|max:2048',
-            'stock'          => 'nullable|integer',
         ]);
 
         if ($request->hasFile('image')) {

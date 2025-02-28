@@ -1,9 +1,7 @@
 <?php
-// app/Services/StockService.php
 namespace App\Services;
 
 use App\Models\Product;
-use App\Models\StockTransaction;
 use App\Repositories\Interfaces\StockRepositoryInterface;
 
 class StockService
@@ -14,38 +12,43 @@ class StockService
     {
         $this->stockRepository = $stockRepository;
     }
-
+    
     public function getAllTransactions()
     {
         return $this->stockRepository->all();
     }
-
+    
+    /**
+     * Buat transaksi stok berdasarkan tipe.
+     * Untuk transaksi masuk, buat record dengan status Pending.
+     * Untuk transaksi keluar, buat record dengan status Pending (tanpa langsung mengurangi stok).
+     */
     public function createTransaction(array $data)
     {
         $data['user_id'] = auth()->id();
-        $data['status']  = 'Pending';
-
-        // Pastikan field notes ada, walaupun kosong
-        if (!isset($data['notes'])) {
-            $data['notes'] = '';
-        }
-    
-        // Jika transaksi tipe Keluar, pastikan stok mencukupi
+        $data['notes'] = $data['notes'] ?? ''; // Handle null notes
+        
         if ($data['type'] === 'Keluar') {
-            $product = Product::findOrFail($data['product_id']);
-            if ($product->stock < $data['quantity']) {
-                throw new \Exception('Stok tidak mencukupi.');
-            }
+            // TIDAK ADA VALIDASI STOK DI SINI
+            return $this->stockRepository->createOutboundTransaction($data);
+        } else { // 'Masuk'
+            return $this->stockRepository->createIncomingTransaction($data);
         }
-    
-        return $this->stockRepository->create($data);
-    }    
-
-    public function updateTransactionStatus($id, $status)
-    {
-        return $this->stockRepository->updateStatus($id, $status);
     }
-
+    
+    public function updateTransactionStatus($id, $status, $receivedAt = null)
+    {
+        $transaction = $this->stockRepository->find($id);
+        
+        if ($transaction->type === 'Keluar' && $status === 'Diterima') {
+            // Khusus untuk transaksi keluar yang diterima, gunakan verifyOutboundTransaction
+            return $this->stockRepository->verifyOutboundTransaction($id, $receivedAt);
+        }
+        
+        // Untuk kasus lain (transaksi masuk atau status ditolak)
+        return $this->stockRepository->updateStatus($id, $status, $receivedAt);
+    }
+    
     public function getPendingTransactions()
     {
         return $this->stockRepository->getPendingTransactions();
@@ -53,32 +56,26 @@ class StockService
     
     public function getTransaction($id)
     {
-        return $this->stockRepository->find($id);
+        return $this->stockRepository->getTransactionById($id);
     }
-
+    
     public function getIncomingTransactions()
     {
-        return StockTransaction::with(['product', 'user'])
-            ->where('type', 'Masuk')
-            ->orderBy('date', 'desc')
-            ->get();
+        return $this->stockRepository->getIncomingTransactions();
     }
-
+    
     public function getOutgoingTransactions()
     {
-        return StockTransaction::with(['product', 'user'])
-            ->where('type', 'Keluar')
-            ->orderBy('date', 'desc')
-            ->get();
+        return $this->stockRepository->getOutgoingTransactions();
     }
-
+    
     public function getStockOpnameData()
     {
         $products = Product::select('name', 'stock')->get();
         $data = [];
         foreach ($products as $product) {
             $systemStock   = $product->stock;
-            $physicalStock = $systemStock; // Asumsi default: tidak ada perbedaan
+            $physicalStock = $systemStock;
             $difference    = $systemStock - $physicalStock;
             $data[] = [
                 'product'        => $product->name,
@@ -89,14 +86,74 @@ class StockService
         }
         return $data;
     }
-
+    
     public function getPaginatedTransactions($perPage = 10)
     {
         return $this->stockRepository->paginateTransactions($perPage);
     }
-
-        public function updateMinStock($id, $minStock)
+    
+    public function updateMinStock($id, $minStock)
     {
         return $this->stockRepository->updateMinStock($id, $minStock);
     }
+    
+    public function verifyOutboundTransaction($id, $verifiedAt)
+    {
+        return $this->stockRepository->verifyOutboundTransaction($id, $verifiedAt);
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

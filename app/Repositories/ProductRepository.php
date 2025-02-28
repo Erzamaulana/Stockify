@@ -46,9 +46,14 @@ class ProductRepository implements ProductRepositoryInterface
         return $this->model->where('category_id', $categoryId)->get();
     }
     
-    // Tambahkan method untuk pagination
     public function paginate($perPage = 10)
     {
         return $this->model->paginate($perPage);
+    }
+    
+    // Implementasi method getByIds
+    public function getByIds($ids)
+    {
+        return $this->model->whereIn('id', $ids)->get();
     }
 }

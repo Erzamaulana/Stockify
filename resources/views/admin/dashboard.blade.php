@@ -18,7 +18,7 @@
                 </div>
                 <div>
                     <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Produk</p>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $dashboardData['total_products'] ?? 0 }}</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $dashboardData['total_products'] }}</p>
                 </div>
             </div>
         </div>
@@ -33,7 +33,7 @@
                 </div>
                 <div>
                     <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Transaksi Masuk</p>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $dashboardData['incoming_transactions'] ?? 0 }}</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $dashboardData['incoming_transactions'] }}</p>
                 </div>
             </div>
         </div>
@@ -48,7 +48,7 @@
                 </div>
                 <div>
                     <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Transaksi Keluar</p>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $dashboardData['outgoing_transactions'] ?? 0 }}</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $dashboardData['outgoing_transactions'] }}</p>
                 </div>
             </div>
         </div>
@@ -63,13 +63,13 @@
                 </div>
                 <div>
                     <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Stok Menipis</p>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ count($dashboardData['low_stock_products'] ?? []) }}</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $dashboardData['low_stock_count'] }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Grid untuk Aktivitas dan Grafik -->
+    <!-- Rest of the blade template remains the same -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Aktivitas Pengguna -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow">

@@ -18,7 +18,9 @@ class StockTransaction extends Model
         'status',
         'notes',
         'remaining',    
-        'received_at',  
+        'received_at',
+        'expiry_date', 
+        'batch_number', 
     ];
 
     public function product()
@@ -31,3 +33,4 @@ class StockTransaction extends Model
         return $this->belongsTo(User::class);
     }
 }
+

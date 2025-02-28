@@ -2,10 +2,10 @@
 
 namespace App\Repositories;
 
+use App\Repositories\Interfaces\DashboardRepositoryInterface;
 use App\Models\Product;
 use App\Models\StockTransaction;
 use App\Models\ActivityLog;
-use App\Repositories\Interfaces\DashboardRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 
 class DashboardRepository implements DashboardRepositoryInterface
@@ -14,17 +14,30 @@ class DashboardRepository implements DashboardRepositoryInterface
     protected $stockTransaction;
     protected $activityLog;
 
-    // Tambahkan ActivityLog sebagai parameter ketiga
     public function __construct(Product $product, StockTransaction $stockTransaction, ActivityLog $activityLog)
     {
         $this->product = $product;
         $this->stockTransaction = $stockTransaction;
-        $this->activityLog = $activityLog; 
+        $this->activityLog = $activityLog;
     }
 
     public function getTotalProducts()
     {
         return $this->product->count();
+    }
+
+    public function getTransactionCount($type)
+    {
+        return $this->stockTransaction
+            ->where('type', $type)
+            ->count();
+    }
+
+    public function getLowStockCount()
+    {
+        return $this->product
+            ->whereColumn('stock', '<=', 'min_stock')
+            ->count();
     }
 
     public function getRecentTransactions($limit = 5)
@@ -78,12 +91,19 @@ class DashboardRepository implements DashboardRepositoryInterface
             ->get();
     }
 
-    // Method paginate untuk ActivityLog
     public function paginate($perPage = 5)
     {
         return $this->activityLog
             ->with('user')
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
+    }
+
+    public function getDailyTransactions($startOfDay, $endOfDay, $type)
+    {
+        return $this->stockTransaction
+            ->where('type', $type)
+            ->whereBetween('created_at', [$startOfDay, $endOfDay])
+            ->sum('quantity');
     }
 }

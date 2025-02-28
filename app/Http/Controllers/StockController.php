@@ -34,6 +34,11 @@ class StockController extends Controller
         return view('admin.stock.index', compact('incomingTransactions', 'outgoingTransactions', 'stockOpnameData', 'transactions'));
     }
     
+    /**
+     * Proses pembuatan transaksi stok.
+     * Untuk transaksi masuk, dibuat dengan status Pending (tanpa mengupdate stok produk).
+     * Untuk transaksi keluar, diproses dengan metode FIFO.
+     */
     public function store(Request $request)
     {
         if (auth()->user()->role !== 'Admin') {
@@ -49,9 +54,9 @@ class StockController extends Controller
         ]);
         
         try {
+            // Gunakan createTransaction untuk konsistensi
             $transaction = $this->stockService->createTransaction($validated);
-
-            // Dispatch event untuk mencatat aktivitas pembuatan transaksi
+            
             event(new ActivityOccurred(
                 auth()->id(),
                 "Membuat Transaksi {$validated['type']}",
@@ -66,19 +71,26 @@ class StockController extends Controller
     
     public function updateStatus(Request $request, $id)
     {
-        // Izinkan Admin dan Staff Gudang untuk mengupdate status
         if (!in_array(auth()->user()->role, ['Admin', 'Staff Gudang'])) {
             abort(403, 'Access Denied');
         }
         
-        $validated = $request->validate([
-            'status' => 'required|in:Diterima,Ditolak'
-        ]);
+        $rules = [
+            'status' => 'required|in:Diterima,Ditolak',
+        ];
+        if ($request->input('status') === 'Diterima') {
+            $rules['received_at'] = 'required|date';
+        }
+        
+        $validated = $request->validate($rules);
         
         try {
-            $transaction = $this->stockService->updateTransactionStatus($id, $validated['status']);
-
-            // Dispatch event untuk mencatat aktivitas update status transaksi
+            $transaction = $this->stockService->updateTransactionStatus(
+                $id, 
+                $validated['status'], 
+                $validated['received_at'] ?? null
+            );
+            
             event(new ActivityOccurred(
                 auth()->id(),
                 "Mengupdate Status Transaksi",
@@ -94,7 +106,7 @@ class StockController extends Controller
             return back()->with('error', $e->getMessage());
         }
     }
-    
+     
     public function show($id)
     {
         $transaction = $this->stockService->getTransaction($id);
@@ -140,7 +152,6 @@ class StockController extends Controller
             'min_stock' => 'required|integer|min:0',
         ]);
     
-        // Misalnya, update menggunakan model Product
         $product = \App\Models\Product::findOrFail($id);
         $product->min_stock = $request->input('min_stock');
         $product->save();
@@ -148,6 +159,4 @@ class StockController extends Controller
         return redirect()->route('admin.stock.settings')
                          ->with('success', 'Stok minimum berhasil diperbarui.');
     }
-    
-       
 }

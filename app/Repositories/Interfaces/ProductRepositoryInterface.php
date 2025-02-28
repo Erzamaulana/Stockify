@@ -11,4 +11,7 @@ interface ProductRepositoryInterface
     public function delete($id);
     public function findByCategory($categoryId);
     public function paginate($perPage = 10);
+    
+    // Method baru untuk mengambil produk berdasarkan array ID
+    public function getByIds($ids);
 }

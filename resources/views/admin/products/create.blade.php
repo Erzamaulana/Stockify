@@ -90,13 +90,6 @@
             @error('image') <span class="text-red-500 text-sm">{{ $message }}</span>@enderror
         </div>
 
-        <!-- Field Stok (Opsional) -->
-        <div class="mb-6">
-            <label for="stock" class="block text-gray-700 dark:text-gray-300">Stok (opsional)</label>
-            <input type="number" id="stock" name="stock" class="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="{{ old('stock', 0) }}">
-            @error('stock') <span class="text-red-500 text-sm">{{ $message }}</span>@enderror
-        </div>
-
         <!-- Tombol Submit -->
         <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700">
             Simpan Produk
